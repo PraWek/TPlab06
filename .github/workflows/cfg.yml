@@ -1,6 +1,7 @@
 name: Build
 run-name: ${{ github.actor }} compiling based on CMakeLists.txt
 on: [push]
+
 jobs:
   compile_on_ubuntu:
     runs-on: ubuntu-latest
@@ -20,8 +21,9 @@ jobs:
           excludes: third-party
           coveralls-send: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
   make_artifacts:
-    if: startsWith( ${{ github.event.ref }} , '/refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - name: checkout
@@ -39,33 +41,37 @@ jobs:
           cpack -G "TGZ"
           cpack -G "DEB"
           cpack -G "RPM"
-          cd ..
       - name: Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: linux_artifacts
           path: _build/banking_app-*
+
   make_windows_artifacts:
-    if: startsWith( ${{ github.event.ref }} , '/refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: windows-latest
     steps:
       - name: checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: Build Tests
+          
+      - name: Install NSIS
+        run: choco install nsis -y
+        
+      - name: Build
         run: |
-          cmake -S D:/a/TPlab06/TPlab06 -B D:/a/TPlab06/TPlab06/_build
-          cmake --build _build
+          cmake -S . -B _build
+          cmake --build _build --config Release
+          
       - name: Make CPack artifacts
         run: |
           cd _build
-          cpack -G "ZIP"
-          cpack -G "NSIS"
-          cd ..
+          cpack -C Release -G "ZIP"
+          cpack -C Release -G "NSIS"
+          
       - name: Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows_artifacts
           path: _build/banking_app-*
-
